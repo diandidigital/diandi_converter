@@ -10,7 +10,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Diandi Converter',
+      title: 'TransformX',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF1976D2)),
       ),
@@ -36,7 +36,9 @@ class ConverterPage extends StatefulWidget {
 }
 
 class _ConverterPageState extends State<ConverterPage> {
-  final TextEditingController _inputController = TextEditingController(text: '1');
+  final TextEditingController _inputController = TextEditingController(
+    text: '1',
+  );
 
   ConversionType _type = ConversionType.temperature;
   int _fromIndex = 0;
@@ -76,7 +78,9 @@ class _ConverterPageState extends State<ConverterPage> {
   }
 
   void _convert() {
-    final value = double.tryParse(_inputController.text.trim().replaceAll(',', '.'));
+    final value = double.tryParse(
+      _inputController.text.trim().replaceAll(',', '.'),
+    );
     if (value == null) {
       setState(() {
         _result = 'Entrée invalide';
@@ -126,7 +130,9 @@ class _ConverterPageState extends State<ConverterPage> {
     }
 
     final fixed = value.toStringAsFixed(6);
-    return fixed.replaceFirst(RegExp(r'0+$'), '').replaceFirst(RegExp(r'\.$'), '');
+    return fixed
+        .replaceFirst(RegExp(r'0+$'), '')
+        .replaceFirst(RegExp(r'\.$'), '');
   }
 
   String _typeLabel(ConversionType type) {
@@ -142,9 +148,7 @@ class _ConverterPageState extends State<ConverterPage> {
     final options = _units[_type]!;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Diandi Converter'),
-      ),
+      appBar: AppBar(title: const Text('TransformX')),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(16),
@@ -172,7 +176,9 @@ class _ConverterPageState extends State<ConverterPage> {
             TextField(
               key: const Key('inputField'),
               controller: _inputController,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               decoration: const InputDecoration(
                 labelText: 'Valeur a convertir',
                 border: OutlineInputBorder(),
