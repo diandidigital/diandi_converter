@@ -7,115 +7,267 @@ void main() {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Diandi Converter',
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: .fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF1976D2)),
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const ConverterPage(),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
+enum ConversionType { temperature, length, weight }
 
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
+class UnitOption {
+  const UnitOption({required this.label, required this.symbol});
 
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
-
-  @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  final String label;
+  final String symbol;
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+class ConverterPage extends StatefulWidget {
+  const ConverterPage({super.key});
 
-  void _incrementCounter() {
+  @override
+  State<ConverterPage> createState() => _ConverterPageState();
+}
+
+class _ConverterPageState extends State<ConverterPage> {
+  final TextEditingController _inputController = TextEditingController(text: '1');
+
+  ConversionType _type = ConversionType.temperature;
+  int _fromIndex = 0;
+  int _toIndex = 1;
+  String _result = '0';
+
+  final Map<ConversionType, List<UnitOption>> _units = {
+    ConversionType.temperature: const [
+      UnitOption(label: 'Celsius', symbol: 'C'),
+      UnitOption(label: 'Fahrenheit', symbol: 'F'),
+      UnitOption(label: 'Kelvin', symbol: 'K'),
+    ],
+    ConversionType.length: const [
+      UnitOption(label: 'Meter', symbol: 'm'),
+      UnitOption(label: 'Kilometer', symbol: 'km'),
+      UnitOption(label: 'Centimeter', symbol: 'cm'),
+      UnitOption(label: 'Mile', symbol: 'mi'),
+      UnitOption(label: 'Foot', symbol: 'ft'),
+    ],
+    ConversionType.weight: const [
+      UnitOption(label: 'Kilogram', symbol: 'kg'),
+      UnitOption(label: 'Gram', symbol: 'g'),
+      UnitOption(label: 'Pound', symbol: 'lb'),
+    ],
+  };
+
+  @override
+  void initState() {
+    super.initState();
+    _convert();
+  }
+
+  @override
+  void dispose() {
+    _inputController.dispose();
+    super.dispose();
+  }
+
+  void _convert() {
+    final value = double.tryParse(_inputController.text.trim().replaceAll(',', '.'));
+    if (value == null) {
+      setState(() {
+        _result = 'Entrée invalide';
+      });
+      return;
+    }
+
+    final converted = _convertValue(value, _type, _fromIndex, _toIndex);
     setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
+      _result = _formatNumber(converted);
     });
+  }
+
+  double _convertValue(double value, ConversionType type, int from, int to) {
+    if (from == to) {
+      return value;
+    }
+
+    switch (type) {
+      case ConversionType.temperature:
+        final celsius = switch (from) {
+          0 => value,
+          1 => (value - 32) * 5 / 9,
+          2 => value - 273.15,
+          _ => value,
+        };
+        return switch (to) {
+          0 => celsius,
+          1 => celsius * 9 / 5 + 32,
+          2 => celsius + 273.15,
+          _ => celsius,
+        };
+      case ConversionType.length:
+        const metersFactor = [1.0, 1000.0, 0.01, 1609.344, 0.3048];
+        final inMeters = value * metersFactor[from];
+        return inMeters / metersFactor[to];
+      case ConversionType.weight:
+        const kilosFactor = [1.0, 0.001, 0.45359237];
+        final inKilos = value * kilosFactor[from];
+        return inKilos / kilosFactor[to];
+    }
+  }
+
+  String _formatNumber(double value) {
+    if (value.isNaN || value.isInfinite) {
+      return 'Erreur';
+    }
+
+    final fixed = value.toStringAsFixed(6);
+    return fixed.replaceFirst(RegExp(r'0+$'), '').replaceFirst(RegExp(r'\.$'), '');
+  }
+
+  String _typeLabel(ConversionType type) {
+    return switch (type) {
+      ConversionType.temperature => 'Temperature',
+      ConversionType.length => 'Longueur',
+      ConversionType.weight => 'Poids',
+    };
   }
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
+    final options = _units[_type]!;
+
     return Scaffold(
       appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
+        title: const Text('Diandi Converter'),
       ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: .center,
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.all(16),
           children: [
-            const Text('You have pushed the button this many times:'),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
+            SegmentedButton<ConversionType>(
+              segments: ConversionType.values
+                  .map(
+                    (type) => ButtonSegment<ConversionType>(
+                      value: type,
+                      label: Text(_typeLabel(type)),
+                    ),
+                  )
+                  .toList(),
+              selected: {_type},
+              onSelectionChanged: (selection) {
+                setState(() {
+                  _type = selection.first;
+                  _fromIndex = 0;
+                  _toIndex = 1;
+                });
+                _convert();
+              },
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              key: const Key('inputField'),
+              controller: _inputController,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: const InputDecoration(
+                labelText: 'Valeur a convertir',
+                border: OutlineInputBorder(),
+              ),
+              onChanged: (_) => _convert(),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: InputDecorator(
+                    decoration: const InputDecoration(
+                      labelText: 'De',
+                      border: OutlineInputBorder(),
+                    ),
+                    child: DropdownButton<int>(
+                      key: const Key('fromUnitDropdown'),
+                      value: _fromIndex,
+                      isExpanded: true,
+                      underline: const SizedBox.shrink(),
+                      items: [
+                        for (var i = 0; i < options.length; i++)
+                          DropdownMenuItem<int>(
+                            value: i,
+                            child: Text(options[i].label),
+                          ),
+                      ],
+                      onChanged: (value) {
+                        if (value == null) {
+                          return;
+                        }
+                        setState(() {
+                          _fromIndex = value;
+                        });
+                        _convert();
+                      },
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: InputDecorator(
+                    decoration: const InputDecoration(
+                      labelText: 'Vers',
+                      border: OutlineInputBorder(),
+                    ),
+                    child: DropdownButton<int>(
+                      key: const Key('toUnitDropdown'),
+                      value: _toIndex,
+                      isExpanded: true,
+                      underline: const SizedBox.shrink(),
+                      items: [
+                        for (var i = 0; i < options.length; i++)
+                          DropdownMenuItem<int>(
+                            value: i,
+                            child: Text(options[i].label),
+                          ),
+                      ],
+                      onChanged: (value) {
+                        if (value == null) {
+                          return;
+                        }
+                        setState(() {
+                          _toIndex = value;
+                        });
+                        _convert();
+                      },
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Resultat',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      key: const Key('resultText'),
+                      '$_result ${options[_toIndex].symbol}',
+                      style: Theme.of(context).textTheme.headlineSmall,
+                    ),
+                  ],
+                ),
+              ),
             ),
           ],
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
       ),
     );
   }
